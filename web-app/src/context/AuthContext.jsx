@@ -26,7 +26,15 @@ export function AuthProvider({ children }) {
     if (!localStorage.getItem('nutrition_token')) return null;
     try {
       const result = await authApi.getProfile();
+      const nextUser = {
+        ...JSON.parse(localStorage.getItem('nutrition_user') || '{}'),
+        id: result?.id,
+        email: result?.email,
+        role: result?.role,
+      };
       setProfile(result);
+      setUser(nextUser);
+      localStorage.setItem('nutrition_user', JSON.stringify(nextUser));
       setProfileError('');
       return result;
     } catch (error) {
@@ -52,7 +60,7 @@ export function AuthProvider({ children }) {
       setLoading(false);
     }
     return () => window.removeEventListener('nutrition:unauthorized', onUnauthorized);
-  }, [logout, refreshProfile, user]);
+  }, [logout, refreshProfile]);
 
   const value = useMemo(() => ({
     user, profile, profileError, loading, setProfile, login: persistSession, logout, refreshProfile,

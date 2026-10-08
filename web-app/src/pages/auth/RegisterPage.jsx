@@ -4,13 +4,19 @@ import { ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
 import * as authApi from '../../api/authApi';
 import { apiErrorMessage } from '../../api/axiosClient';
 import useAuth from '../../hooks/useAuth';
+import GoalAdvice from '../../components/GoalAdvice';
 
-const initial = { full_name: '', email: '', password: '', age: '', gender: 'female', height_cm: '', weight_kg: '', activity_level: 'sedentary' };
+const initial = { full_name: '', email: '', password: '', age: '', gender: 'female', height_cm: '', weight_kg: '', activity_level: 'sedentary', goal: 'maintain' };
 const levels = [
   ['sedentary', 'Ít vận động'],
   ['lightly_active', 'Vận động nhẹ'],
   ['moderately_active', 'Vận động vừa'],
   ['very_active', 'Rất năng động'],
+];
+const goals = [
+  ['lose', 'Giảm cân'],
+  ['maintain', 'Duy trì cân nặng'],
+  ['gain', 'Tăng cân'],
 ];
 
 export default function RegisterPage() {
@@ -46,6 +52,8 @@ export default function RegisterPage() {
         <div className="form-two"><label className="field-label">Tuổi<input className="plain-input" type="number" min="1" max="120" value={form.age} onChange={(e) => change('age', e.target.value)} required /></label><label className="field-label">Giới tính<select className="plain-input" value={form.gender} onChange={(e) => change('gender', e.target.value)}><option value="female">Nữ</option><option value="male">Nam</option></select></label></div>
         <div className="form-two"><label className="field-label">Chiều cao (cm)<input className="plain-input" type="number" min="50" max="260" value={form.height_cm} onChange={(e) => change('height_cm', e.target.value)} required /></label><label className="field-label">Cân nặng (kg)<input className="plain-input" type="number" min="20" max="350" step="0.1" value={form.weight_kg} onChange={(e) => change('weight_kg', e.target.value)} required /></label></div>
         <label className="field-label">Mức độ vận động<select className="plain-input" value={form.activity_level} onChange={(e) => change('activity_level', e.target.value)}>{levels.map(([value, title]) => <option key={value} value={value}>{title}</option>)}</select></label>
+        <label className="field-label">Mục tiêu của bạn<select className="plain-input" value={form.goal} onChange={(e) => change('goal', e.target.value)}>{goals.map(([value, title]) => <option key={value} value={value}>{title}</option>)}</select></label>
+        <GoalAdvice weight={form.weight_kg} height={form.height_cm} goal={form.goal} onChange={(value) => change('goal', value)} />
         <p className="form-hint">Bạn có thể cập nhật những thông tin này bất cứ lúc nào.</p>
       </>}
       <div className="register-actions">{step === 2 && <button type="button" className="btn btn-secondary" onClick={() => setStep(1)}><ChevronLeft size={16} /> Quay lại</button>}<button className="btn btn-primary register-next" disabled={busy}>{busy ? 'Đang tạo...' : step === 1 ? <>Tiếp tục <ChevronRight size={17} /></> : <>Hoàn tất <ArrowRight size={17} /></>}</button></div>

@@ -30,8 +30,19 @@ const calculateTargetCalories = (tdee, goal, gender) => {
   return Math.round(Math.max(Number(tdee) + adjustment, minimum));
 };
 
+// Tỷ lệ % calo cho Protein / Carb / Fat theo mục tiêu (giá trị giữa khoảng tham khảo trong báo cáo, mục 2.1.1.4)
+const MACRO_RATIOS = {
+  lose: { protein: 35, carbs: 35, fat: 30 },
+  maintain: { protein: 22, carbs: 48, fat: 30 },
+  gain: { protein: 28, carbs: 50, fat: 22 }
+};
+
+const getMacroRatios = (goal) => MACRO_RATIOS[goal] || MACRO_RATIOS.maintain;
+
 module.exports = {
   calculateBMR,
   calculateTDEE,
-  calculateTargetCalories
+  calculateTargetCalories,
+  MACRO_RATIOS,
+  getMacroRatios
 };

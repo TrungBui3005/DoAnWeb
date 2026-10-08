@@ -23,7 +23,8 @@ class AdminRepository {
     const [rows] = await pool.query(
       `SELECT u.id, u.email, u.created_at, u.updated_at,
               u.role, u.is_active,
-              p.full_name, p.age, p.gender
+              p.full_name, p.age, p.gender, p.height_cm, p.weight_kg,
+              p.activity_level, p.bmr, p.tdee, p.goal, p.target_calories
        FROM users u
        LEFT JOIN user_profiles p ON p.user_id = u.id
        WHERE ${conditions}

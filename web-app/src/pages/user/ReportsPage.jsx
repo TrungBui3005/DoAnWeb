@@ -2,10 +2,10 @@ import { useCallback, useEffect, useState } from 'react';
 import { Activity, CalendarDays, ChevronLeft, ChevronRight, Flame, Footprints, Utensils } from 'lucide-react';
 import { apiErrorMessage } from '../../api/axiosClient';
 import { getWeeklyReport } from '../../api/reportApi';
-import { format, localDate } from './HomePage';
+import { formatCalories, getLocalDate } from '../../utils/nutrition';
 
 export default function ReportsPage() {
-  const [endDate, setEndDate] = useState(localDate);
+  const [endDate, setEndDate] = useState(() => getLocalDate());
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -26,7 +26,8 @@ export default function ReportsPage() {
   const shiftWeek = (weeks) => {
     const next = new Date(`${endDate}T12:00:00`);
     next.setDate(next.getDate() + weeks * 7);
-    setEndDate(localDate(next) > localDate() ? localDate() : localDate(next));
+    const nextDate = getLocalDate(next);
+    setEndDate(nextDate > getLocalDate() ? getLocalDate() : nextDate);
   };
   const totals = report?.totals || {};
   const days = report?.days || [];
@@ -43,9 +44,9 @@ export default function ReportsPage() {
       <div><div className="page-eyebrow"><span className="status-dot" /> HIỂU RÕ HÀNH TRÌNH CỦA BẠN</div><h1>Báo cáo dinh dưỡng</h1><p>Theo dõi lượng nạp vào và năng lượng tiêu hao theo từng ngày.</p></div>
       <div className="report-date-controls">
         <button type="button" className="icon-button" aria-label="7 ngày trước" onClick={() => shiftWeek(-1)}><ChevronLeft size={17} /></button>
-        <label className="date-picker"><CalendarDays size={17} /><input aria-label="Ngày kết thúc báo cáo" type="date" value={endDate} max={localDate()} onChange={(event) => setEndDate(event.target.value)} /></label>
-        <button type="button" className="icon-button" aria-label="7 ngày sau" disabled={endDate >= localDate()} onClick={() => shiftWeek(1)}><ChevronRight size={17} /></button>
-        {endDate !== localDate() && <button type="button" className="today-button" onClick={() => setEndDate(localDate())}>Tuần này</button>}
+        <label className="date-picker"><CalendarDays size={17} /><input aria-label="Ngày kết thúc báo cáo" type="date" value={endDate} max={getLocalDate()} onChange={(event) => setEndDate(event.target.value)} /></label>
+        <button type="button" className="icon-button" aria-label="7 ngày sau" disabled={endDate >= getLocalDate()} onClick={() => shiftWeek(1)}><ChevronRight size={17} /></button>
+        {endDate !== getLocalDate() && <button type="button" className="today-button" onClick={() => setEndDate(getLocalDate())}>Tuần này</button>}
       </div>
     </section>
     {error && <div className="inline-alert">{error}<button className="text-link" onClick={load}>Thử lại</button></div>}
@@ -63,7 +64,7 @@ export default function ReportsPage() {
           const consumed = Number(day.calories_consumed) || 0;
           const burned = Number(day.calories_burned) || 0;
           const date = new Date(`${day.date}T12:00:00`);
-          return <div className="weekly-chart-day" key={day.date} title={`${date.toLocaleDateString('vi-VN')}: nạp ${format(consumed)} kcal, vận động ${format(burned)} kcal`}>
+          return <div className="weekly-chart-day" key={day.date} title={`${date.toLocaleDateString('vi-VN')}: nạp ${formatCalories(consumed)} kcal, vận động ${formatCalories(burned)} kcal`}>
             <div className="weekly-chart-bars"><i className="consumed" style={{ height: `${consumed ? Math.max(consumed / maxCalories * 100, 3) : 0}%` }} /><i className="burned" style={{ height: `${burned ? Math.max(burned / maxCalories * 100, 3) : 0}%` }} /></div>
             <span>{date.toLocaleDateString('vi-VN', { weekday: 'short' })}</span>
             <small>{date.getDate()}/{date.getMonth() + 1}</small>
@@ -85,9 +86,9 @@ export default function ReportsPage() {
 }
 
 function ReportStat({ icon: Icon, tone, label, value, unit, loading }) {
-  return <article className="card report-stat"><span className={`report-stat-icon ${tone}`}><Icon size={17} /></span><div><small>{label}</small><b>{loading ? '—' : format(value)} <i>{unit}</i></b></div></article>;
+  return <article className="card report-stat"><span className={`report-stat-icon ${tone}`}><Icon size={17} /></span><div><small>{label}</small><b>{loading ? '—' : formatCalories(value)} <i>{unit}</i></b></div></article>;
 }
 
 function MacroSummary({ label, value, color, loading }) {
-  return <div className="macro-summary"><span className={`macro-summary-dot ${color}`} /><div><small>{label}</small><b>{loading ? '—' : format(value)} <i>g</i></b></div></div>;
+  return <div className="macro-summary"><span className={`macro-summary-dot ${color}`} /><div><small>{label}</small><b>{loading ? '—' : formatCalories(value)} <i>g</i></b></div></div>;
 }

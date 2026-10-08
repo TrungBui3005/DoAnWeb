@@ -3,6 +3,7 @@ import { Activity, ArrowRight, Check, Heart, Ruler, Scale, UserRound } from 'luc
 import { updateProfile } from '../../api/authApi';
 import { apiErrorMessage } from '../../api/axiosClient';
 import useAuth from '../../hooks/useAuth';
+import GoalAdvice from '../../components/GoalAdvice';
 
 const fields = ['full_name', 'age', 'gender', 'height_cm', 'weight_kg', 'activity_level', 'goal'];
 const activityNames = { sedentary: 'Ít vận động', lightly_active: 'Vận động nhẹ', moderately_active: 'Vận động vừa', very_active: 'Rất năng động' };
@@ -42,6 +43,7 @@ export default function ProfilePage() {
         <div className="form-two"><label className="field-label">Chiều cao (cm)<input className="plain-input" type="number" min="50" max="260" value={form.height_cm || ''} onChange={(e) => change('height_cm', e.target.value)} required /></label><label className="field-label">Cân nặng (kg)<input className="plain-input" type="number" min="20" max="350" step="0.1" value={form.weight_kg || ''} onChange={(e) => change('weight_kg', e.target.value)} required /></label></div>
         <label className="field-label">Mức độ vận động<select className="plain-input" value={form.activity_level || 'sedentary'} onChange={(e) => change('activity_level', e.target.value)}>{Object.entries(activityNames).map(([key, name]) => <option key={key} value={key}>{name}</option>)}</select></label>
         <label className="field-label">Mục tiêu của bạn<select className="plain-input" value={form.goal || 'maintain'} onChange={(e) => change('goal', e.target.value)}>{Object.entries(goalNames).map(([key, name]) => <option key={key} value={key}>{name}</option>)}</select></label>
+        <GoalAdvice weight={form.weight_kg} height={form.height_cm} goal={form.goal || 'maintain'} onChange={(value) => change('goal', value)} />
         <p className="form-hint">Mục tiêu calo được tính tự động từ TDEE và mục tiêu của bạn. Mức giảm/tăng chỉ là gợi ý tham khảo, không thay thế tư vấn chuyên gia.</p>
         <button className="btn btn-primary profile-save" disabled={busy}>{busy ? 'Đang lưu...' : <>Lưu thay đổi <ArrowRight size={16} /></>}</button>
       </form>

@@ -7,6 +7,10 @@ const { calculateBMR, calculateTDEE, calculateTargetCalories } = require('../uti
 class AuthService {
   async register(data) {
     const { email, password, full_name, age, gender, height_cm, weight_kg, activity_level } = data;
+    const goal = data.goal || 'maintain';
+    if (!['lose', 'maintain', 'gain'].includes(goal)) {
+      throw new Error('Mục tiêu dinh dưỡng không hợp lệ.');
+    }
 
     // 1. Kiểm tra email tồn tại
     const existingUser = await userRepository.findByEmail(email);
@@ -18,29 +22,35 @@ class AuthService {
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(password, salt);
 
-    // 3. Lưu bảng users
-    const userId = await userRepository.createUser(email, passwordHash, DEFAULT_ROLE);
-
-    // 4. Tính toán BMR và TDEE
+    // 3. Tính toán BMR, TDEE và calo mục tiêu
     const bmr = calculateBMR(gender, weight_kg, height_cm, age);
     const tdee = calculateTDEE(bmr, activity_level);
-    const goal = 'maintain';
     const target_calories = calculateTargetCalories(tdee, goal, gender);
 
-    // 5. Lưu bảng user_profiles
-    await userRepository.createProfile({
-      user_id: userId,
-      full_name: full_name || 'Người dùng',
-      age,
-      gender,
-      height_cm,
-      weight_kg,
-      activity_level: activity_level || 'sedentary',
-      bmr,
-      tdee,
-      goal,
-      target_calories
-    });
+    // 4. Lưu users + user_profiles trong MỘT transaction
+    //    (lỗi ở bước nào thì cả hai cùng bị hủy, không để lại tài khoản thiếu hồ sơ)
+    let userId;
+    try {
+      userId = await userRepository.createUserWithProfile({
+        email,
+        role: DEFAULT_ROLE,
+        full_name: full_name || 'Người dùng',
+        age,
+        gender,
+        height_cm,
+        weight_kg,
+        activity_level: activity_level || 'sedentary',
+        bmr,
+        tdee,
+        goal,
+        target_calories
+      }, passwordHash);
+    } catch (error) {
+      if (error.code === 'ER_DUP_ENTRY') {
+        throw new Error('Email này đã được sử dụng!');
+      }
+      throw error;
+    }
 
     return { userId, email };
   }

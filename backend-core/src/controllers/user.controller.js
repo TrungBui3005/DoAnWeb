@@ -29,3 +29,30 @@ exports.updateProfile = async (req, res) => {
     });
   }
 };
+exports.updateAvatar = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    // req.file chứa thông tin ảnh upload từ middleware singleImage
+    const avatarPath = req.file ? req.file.path : null; 
+
+    if (!avatarPath) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Vui lòng tải lên một tệp hình ảnh!'
+      });
+    }
+
+    const updatedProfile = await userService.updateAvatar(userId, avatarPath);
+
+    res.status(200).json({
+      status: 'success',
+      message: 'Cập nhật ảnh đại diện thành công!',
+      data: updatedProfile
+    });
+  } catch (error) {
+    res.status(error.statusCode || 400).json({
+      status: 'error',
+      message: error.message
+    });
+  }
+};

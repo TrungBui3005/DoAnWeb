@@ -1,5 +1,6 @@
 const PERMISSIONS = Object.freeze({
   USERS_READ: 'users:read',
+  USERS_CREATE: 'users:create',
   USERS_ASSIGN_ROLE: 'users:assign-role',
   ROLES_READ: 'roles:read',
   PERMISSIONS_READ: 'permissions:read',
@@ -57,6 +58,7 @@ const ROLE_DEFINITIONS = Object.freeze([
 
 const PERMISSION_DEFINITIONS = Object.freeze([
   ['Xem người dùng', PERMISSIONS.USERS_READ, 'Xem danh sách và thông tin người dùng'],
+  ['Tạo người dùng', PERMISSIONS.USERS_CREATE, 'Tạo tài khoản và hồ sơ thể trạng mới'],
   ['Gán role cho người dùng', PERMISSIONS.USERS_ASSIGN_ROLE, 'Thay đổi role của người dùng'],
   ['Xem role', PERMISSIONS.ROLES_READ, 'Xem danh sách và thông tin role'],
   ['Xem permission', PERMISSIONS.PERMISSIONS_READ, 'Xem danh sách quyền'],

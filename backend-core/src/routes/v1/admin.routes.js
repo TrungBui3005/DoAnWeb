@@ -8,6 +8,12 @@ const dto = require('../../dtos/admin.dto');
 
 router.use(verifyToken);
 
+router.post(
+  '/users',
+  requirePermission('users:create'),
+  validate(dto.createUserBody),
+  adminController.createUser
+);
 router.get(
   '/users',
   requirePermission('users:read'),

@@ -1,7 +1,7 @@
 const db = require('../config/database');
 
 class FoodRepository {
-  // Lấy danh sách thực phẩm (có phân trang & tìm kiếm theo tên)
+  // Lấy TOÀN BỘ thực phẩm (Bao gồm cả món Admin + Tất cả món do User/AI tạo)
   async findAll({ search, limit = 20, offset = 0 }) {
     let query = 'SELECT * FROM foods WHERE 1=1';
     const params = [];
@@ -18,6 +18,15 @@ class FoodRepository {
     return rows;
   }
 
+  // Tìm món ăn theo tên (cho toàn bộ hệ thống)
+  async findByNameAndUser(name) {
+    const [rows] = await db.query(
+      'SELECT * FROM foods WHERE LOWER(name) = LOWER(?) LIMIT 1', 
+      [name]
+    );
+    return rows[0] || null;
+  }
+
   // Lấy chi tiết món ăn theo ID
   async findById(id) {
     const [rows] = await db.query('SELECT * FROM foods WHERE id = ?', [id]);
@@ -26,11 +35,11 @@ class FoodRepository {
 
   // Thêm thực phẩm mới
   async create(foodData) {
-    const { name, calories, protein, carbs, fat, serving_unit, is_custom, created_by } = foodData;
+    const { name, calories, protein, carbs, fat, serving_unit, image_url, is_custom, created_by } = foodData;
     const [result] = await db.query(
-      `INSERT INTO foods (name, calories, protein, carbs, fat, serving_unit, is_custom, created_by)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [name, calories, protein, carbs, fat, serving_unit || '100g', is_custom || 0, created_by || null]
+      `INSERT INTO foods (name, calories, protein, carbs, fat, serving_unit, image_url, is_custom, created_by)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [name, calories, protein, carbs, fat, serving_unit || '100g', image_url || null, is_custom || 0, created_by || null]
     );
     return result.insertId;
   }

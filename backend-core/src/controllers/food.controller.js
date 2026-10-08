@@ -9,8 +9,9 @@ class FoodController {
       const parsedLimit = parseInt(limit) || 20;
       const parsedPage = parseInt(page) || 1;
       const offset = (parsedPage - 1) * parsedLimit;
+      const userId = req.user ? req.user.id : null; // Lấy userId từ auth middleware
 
-      const foods = await foodRepository.findAll({ search, limit: parsedLimit, offset });
+      const foods = await foodRepository.findAll({ search, limit: parsedLimit, offset, userId });
       return successResponse(res, foods, 'Lấy danh sách thực phẩm thành công');
     } catch (error) {
       next(error);
@@ -33,7 +34,7 @@ class FoodController {
   // POST /api/v1/foods
   async createFood(req, res, next) {
     try {
-      const userId = req.user ? req.user.id : null; // Lấy từ auth.middleware nếu có
+      const userId = req.user ? req.user.id : null;
       const foodData = {
         ...req.body,
         created_by: userId,

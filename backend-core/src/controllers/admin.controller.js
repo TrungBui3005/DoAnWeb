@@ -1,7 +1,10 @@
 const adminService = require('../services/admin.service');
 const rbacService = require('../services/rbac.service');
+const { AdminUserService } = require('../services/admin-user.service');
 const requestMetrics = require('../middlewares/request-metrics.middleware');
 const { findRoleById } = require('../constants/roles');
+
+const adminUserService = new AdminUserService();
 
 const handle = (action, statusCode = 200) => async (req, res, next) => {
   try {
@@ -14,6 +17,14 @@ const handle = (action, statusCode = 200) => async (req, res, next) => {
     return next(error);
   }
 };
+
+const createUser = handle(async (req) => {
+  const input = {
+    ...req.body,
+    role: req.body.role || 'user'
+  };
+  return adminUserService.createUser(input);
+}, 201);
 
 const assignUserRole = handle((req) => {
   if (Number(req.params.id) === Number(req.user.id)) {
@@ -39,6 +50,7 @@ const setUserActiveStatus = handle((req) => {
 const adminController = {
   listUsers: handle((req) => adminService.listUsers(req.query)),
   getUser: handle((req) => adminService.getUser(req.params.id)),
+  createUser,
   getSystemReport: handle(async () => ({
     ...(await adminService.getSystemReport()),
     performance: requestMetrics.getSnapshot()

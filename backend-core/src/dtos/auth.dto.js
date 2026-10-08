@@ -8,6 +8,7 @@ class RegisterDto {
     this.height_cm = Number(data.height_cm);
     this.weight_kg = Number(data.weight_kg);
     this.activity_level = data.activity_level || 'sedentary';
+    this.goal = data.goal || 'maintain'; // 'lose' | 'maintain' | 'gain'
   }
 }
 

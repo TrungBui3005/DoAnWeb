@@ -7,6 +7,7 @@ const foodFields = {
   carbs: Joi.number().min(0).max(9999.99),
   fat: Joi.number().min(0).max(9999.99),
   serving_unit: Joi.string().trim().min(1).max(50),
+  image_url: Joi.string().trim().max(255).allow(''),
 };
 
 const createFoodDto = Joi.object({
@@ -18,6 +19,7 @@ const createFoodDto = Joi.object({
   carbs: foodFields.carbs.default(0),
   fat: foodFields.fat.default(0),
   serving_unit: foodFields.serving_unit.default('100g'),
+  image_url: foodFields.image_url.default(''),
   is_custom: Joi.boolean().default(false),
 });
 

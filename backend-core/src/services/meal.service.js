@@ -1,5 +1,6 @@
 const pool = require('../config/database');
 const mealRepository = require('../repositories/meal.repository');
+const foodRepository = require('../repositories/food.repository');
 
 const mealTypes = ['breakfast', 'lunch', 'dinner', 'snack'];
 
@@ -63,9 +64,16 @@ const recalculateMeal = async (mealId, connection) => {
 
 class MealService {
   async logMeal(userId, data) {
-    const { meal_type: mealType, meal_date: requestedDate, items } = data;
+    const {
+      meal_type: mealType,
+      meal_date: requestedDate,
+      items
+    } = data;
     validateMealType(mealType);
     const mealDate = validateDate(requestedDate);
+
+    // Hứng ảnh scan được upload từ Root Payload
+    const rootImageUrl = data.image_url || data.imageUrl || data.image || null;
 
     if (!Array.isArray(items) || items.length === 0) {
       throw createError(400, 'items phải có ít nhất một món ăn.');
@@ -83,26 +91,94 @@ class MealService {
       const savedItems = [];
 
       for (const item of items) {
-        const foodId = Number(item.food_id);
-        if (!Number.isInteger(foodId) || foodId <= 0) {
-          throw createError(400, 'food_id phải là số nguyên dương.');
+        let foodId = item.food_id === null || item.food_id === undefined
+          ? null
+          : Number(item.food_id);
+        const foodName = String(item.food_name || item.name || '').trim();
+        
+        // Bắt link ảnh từ từng item hoặc dùng ảnh scan chung
+        const uploadedScanImage = item.image_url || item.imageUrl || item.image || rootImageUrl;
+        let finalImageUrl = uploadedScanImage;
+        let nutrition;
+
+        if (foodId !== null && Number.isInteger(foodId) && foodId > 0) {
+          // 1. Món ăn đã có sẵn trong CSDL
+          const food = await mealRepository.findFoodById(foodId, connection);
+          if (!food) {
+            throw createError(404, `Không tìm thấy thực phẩm có id ${foodId}.`);
+          }
+
+          // Ưu tiên ảnh từ DB nếu có, nếu chưa có -> Dùng ảnh vừa scan
+          finalImageUrl = food.image_url || uploadedScanImage;
+
+          // Cập nhật ảnh vào danh mục món ăn (foods) nếu món đó chưa có ảnh
+          if (!food.image_url && uploadedScanImage) {
+            await foodRepository.update(foodId, { image_url: uploadedScanImage });
+          }
+
+          nutrition = calculateNutrition(
+            food,
+            validateAmount(item.amount_gram)
+          );
+        } else {
+          // 2. Món ăn mới do AI Scan hoặc tạo thủ công
+          if (!foodName) {
+            throw createError(400, 'food_name không được để trống.');
+          }
+
+          const amountGram = validateAmount(item.amount_gram || item.amount || 100);
+          
+          // Kiểm tra xem món này đã có trong CSDL theo tên chưa
+          const existingFood = await foodRepository.findByNameAndUser(foodName, userId);
+
+          if (existingFood) {
+            foodId = existingFood.id;
+            finalImageUrl = existingFood.image_url || uploadedScanImage;
+            
+            // Cập nhật ảnh cho món ăn nếu món đó trước đây chưa có ảnh
+            if (!existingFood.image_url && uploadedScanImage) {
+              await foodRepository.update(foodId, { image_url: uploadedScanImage });
+            }
+          } else {
+            // Quy đổi dinh dưỡng về chuẩn 100g
+            const ratio = 100 / amountGram;
+            const caloriesPer100g = round(Number(item.calories || 0) * ratio);
+            const proteinPer100g = round(Number(item.protein || 0) * ratio);
+            const carbsPer100g = round(Number(item.carbs || 0) * ratio);
+            const fatPer100g = round(Number(item.fat || 0) * ratio);
+
+            // Lưu món ăn vào DB kèm theo link ảnh scan
+            foodId = await foodRepository.create({
+              name: foodName,
+              calories: caloriesPer100g,
+              protein: proteinPer100g,
+              carbs: carbsPer100g,
+              fat: fatPer100g,
+              serving_unit: '100g',
+              image_url: uploadedScanImage,
+              is_custom: 1,
+              created_by: userId
+            });
+          }
+
+          nutrition = {
+            foodName,
+            amountGram,
+            calories: round(item.calories || 0),
+            protein: round(item.protein || 0),
+            carbs: round(item.carbs || 0),
+            fat: round(item.fat || 0)
+          };
         }
 
-        const food = await mealRepository.findFoodById(foodId, connection);
-        if (!food) {
-          throw createError(404, `Không tìm thấy thực phẩm có id ${foodId}.`);
-        }
-
-        const nutrition = calculateNutrition(
-          food,
-          validateAmount(item.amount_gram)
-        );
+        // Đảm bảo chi tiết món ăn lưu vào nhật ký luôn gắn ảnh chuẩn
+        const detail = { ...nutrition, imageUrl: finalImageUrl };
         const detailId = await mealRepository.addMealDetail(
           mealId,
-          nutrition,
+          detail,
           connection
         );
-        savedItems.push({ id: detailId, ...nutrition });
+        savedItems.push({ id: detailId, ...detail });
       }
 
       await recalculateMeal(mealId, connection);

@@ -14,6 +14,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use(requestMetrics.trackRequest);
 
 // Đăng ký Router v1 duy nhất cho tất cả API
@@ -39,9 +40,29 @@ app.use(handleError);
 
 if (require.main === module) {
   const PORT = process.env.PORT || 5000;
-  app.listen(PORT, () => {
+
+  const server = app.listen(PORT, () => {
     console.log(`🚀 [Node.js Core] Server đang chạy tại: http://localhost:${PORT}`);
   });
+
+  // Báo lỗi rõ ràng nếu cổng bị chiếm
+  server.on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+      console.error(`❌ Cổng ${PORT} đang bị chiếm. Chạy: npx kill-port ${PORT}`);
+      process.exit(1);
+    }
+    throw err;
+  });
+
+  // Tắt sạch khi Ctrl+C hoặc bị kill, để không giữ cổng
+  const shutdown = () => {
+    server.close(() => {
+      pool.end().finally(() => process.exit(0));
+    });
+    setTimeout(() => process.exit(0), 3000).unref(); // phòng treo
+  };
+  process.on('SIGINT', shutdown);
+  process.on('SIGTERM', shutdown);
 }
 
 module.exports = app;

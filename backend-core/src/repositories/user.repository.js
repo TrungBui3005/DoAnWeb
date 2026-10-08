@@ -40,6 +40,43 @@ class UserRepository {
     return result.insertId;
   }
 
+  async createUserWithProfile(input, passwordHash) {
+    const connection = await pool.getConnection();
+    try {
+      await connection.beginTransaction();
+      const [result] = await connection.query(
+        'INSERT INTO users (email, password_hash, role, is_active) VALUES (?, ?, ?, 1)',
+        [input.email, passwordHash, input.role]
+      );
+      await connection.query(
+        `INSERT INTO user_profiles (
+          user_id, full_name, age, gender, height_cm, weight_kg,
+          activity_level, bmr, tdee, goal, target_calories
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          result.insertId,
+          input.full_name,
+          input.age,
+          input.gender,
+          input.height_cm,
+          input.weight_kg,
+          input.activity_level,
+          input.bmr,
+          input.tdee,
+          input.goal,
+          input.target_calories
+        ]
+      );
+      await connection.commit();
+      return result.insertId;
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
+  }
+
   // Tạo hồ sơ thể trạng người dùng
   async createProfile(profileData) {
     const { user_id, full_name, age, gender, height_cm, weight_kg, activity_level, bmr, tdee, goal, target_calories } = profileData;
@@ -54,11 +91,17 @@ class UserRepository {
   // Cập nhật hồ sơ thể trạng
   async updateProfile(userId, profileData) {
     const { full_name, age, gender, height_cm, weight_kg, activity_level, bmr, tdee, goal, target_calories } = profileData;
+    // Upsert: chưa có hồ sơ thì tạo mới, có rồi thì cập nhật (user_id là UNIQUE)
     await pool.query(
-      `UPDATE user_profiles 
-       SET full_name = ?, age = ?, gender = ?, height_cm = ?, weight_kg = ?, activity_level = ?, bmr = ?, tdee = ?, goal = ?, target_calories = ?
-       WHERE user_id = ?`,
-      [full_name, age, gender, height_cm, weight_kg, activity_level, bmr, tdee, goal, target_calories, userId]
+      `INSERT INTO user_profiles
+         (user_id, full_name, age, gender, height_cm, weight_kg, activity_level, bmr, tdee, goal, target_calories)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE
+         full_name = VALUES(full_name), age = VALUES(age), gender = VALUES(gender),
+         height_cm = VALUES(height_cm), weight_kg = VALUES(weight_kg),
+         activity_level = VALUES(activity_level), bmr = VALUES(bmr), tdee = VALUES(tdee),
+         goal = VALUES(goal), target_calories = VALUES(target_calories)`,
+      [userId, full_name, age, gender, height_cm, weight_kg, activity_level, bmr, tdee, goal, target_calories]
     );
   }
 }

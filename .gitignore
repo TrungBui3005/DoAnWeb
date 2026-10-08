@@ -2,3 +2,5 @@
 venv/
 __pycache__/
 node_modules/
+backend-core/uploads/*
+!backend-core/uploads/.gitkeep
